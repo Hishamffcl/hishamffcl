@@ -1,4 +1,4 @@
-package com.example
+package com.example.karaokeapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -47,7 +47,6 @@ object TamilTransliterationEngine {
         'ப' to "pa", 'ம' to "ma", 'ய' to "ya", 'ர' to "ra",
         'ல' to "la", 'வ' to "va", 'ழ' to "zha", 'ள' to "la",
         'ற' to "ra", 'ன' to "na",
-        // Grantha Consonants
         'ஜ' to "ja", 'ஷ' to "sha", 'ஸ' to "sa", 'ஹ' to "ha", 'க்ஷ' to "ksha"
     )
 
@@ -68,38 +67,32 @@ object TamilTransliterationEngine {
         while (i < len) {
             val char = text[i]
 
-            // 1. Special Aytham Character
             if (char == AYTHAM) {
                 result.append("akh")
                 i++
                 continue
             }
 
-            // 2. Standalone Independent Vowel
             if (VOWELS.containsKey(char)) {
                 result.append(VOWELS[char])
                 i++
                 continue
             }
 
-            // 3. Consonants and Syllable Mapping
             if (CONSONANTS.containsKey(char)) {
                 val baseConsonant = CONSONANTS[char]!!
                 val nextChar = if (i + 1 < len) text[i + 1] else null
 
                 when {
-                    // Consonant + Pulli (Pure Consonant, remove trailing 'a')
                     nextChar == PULLI -> {
                         result.append(baseConsonant.dropLast(1))
                         i += 2
                     }
-                    // Consonant + Vowel Sign Modifier
                     nextChar != null && VOWEL_SIGNS.containsKey(nextChar) -> {
                         val vowelSound = VOWEL_SIGNS[nextChar]!!
                         result.append(baseConsonant.dropLast(1)).append(vowelSound)
                         i += 2
                     }
-                    // Consonant with Default Short 'a' Vowel Sound
                     else -> {
                         result.append(baseConsonant)
                         i++
@@ -108,7 +101,6 @@ object TamilTransliterationEngine {
                 continue
             }
 
-            // 4. Pass-through for spaces, punctuation, Latin characters, etc.
             result.append(char)
             i++
         }
@@ -130,7 +122,6 @@ data class LrcLine(
 )
 
 object LrcParser {
-    // Regex matching timestamp tags such as [01:23.45] or [01:23]
     private val TIME_TAG_REGEX = Pattern.compile("""\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]""")
 
     fun parse(lrcContent: String): List<LrcLine> {
@@ -297,7 +288,6 @@ fun KaraokeStageScreen(onBack: () -> Unit) {
         Text("🎤 Now Playing", color = Color.Gray, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(30.dp))
 
-        // Dynamic Highlighting Tamil Lyric Text
         KaraokeProgressiveText(
             text = sampleTamil,
             progress = progress
@@ -305,7 +295,6 @@ fun KaraokeStageScreen(onBack: () -> Unit) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Transliterated Roman Script Output
         KaraokeProgressiveText(
             text = transliterated,
             progress = progress,
