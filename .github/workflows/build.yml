@@ -17,22 +17,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android Project Structure
+    - name: Setup Android Project
       run: |
         mkdir -p app/src/main/java/com/example/karaokeapp
         mkdir -p gradle/wrapper
 
-        if [ -f "MainActivity.txt" ]; then
-          cp MainActivity.txt app/src/main/java/com/example/karaokeapp/MainActivity.kt
-        elif [ -f "MainActivity.kt" ]; then
-          cp MainActivity.kt app/src/main/java/com/example/karaokeapp/MainActivity.kt
-        else
-          echo "package com.example.karaokeapp" > app/src/main/java/com/example/karaokeapp/MainActivity.kt
-        fi
-
-        if ! grep -q "package com.example.karaokeapp" app/src/main/java/com/example/karaokeapp/MainActivity.kt; then
-          sed -i '1i package com.example.karaokeapp' app/src/main/java/com/example/karaokeapp/MainActivity.kt
-        fi
+        cp MainActivity.txt app/src/main/java/com/example/karaokeapp/MainActivity.kt
 
         echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/AndroidManifest.xml
         echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.karaokeapp">' >> app/src/main/AndroidManifest.xml
@@ -59,7 +49,7 @@ jobs:
         echo "android {" >> app/build.gradle
         echo "    namespace 'com.example.karaokeapp'" >> app/build.gradle
         echo "    compileSdk 34" >> app/build.gradle
-        echo "    defaultConfig { applicationId 'com.example.karaokeapp'; minSdk 21; targetSdk 34; versionCode 1; versionName '1.0' }" >> app/build.gradle
+        echo "    defaultConfig { applicationId 'com.example.karaokeapp'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' }" >> app/build.gradle
         echo "    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }" >> app/build.gradle
         echo "    kotlinOptions { jvmTarget = '17' }" >> app/build.gradle
         echo "    buildFeatures { compose true }" >> app/build.gradle
@@ -77,20 +67,10 @@ jobs:
         echo "    implementation 'androidx.compose.ui:ui-graphics'" >> app/build.gradle
         echo "    implementation 'androidx.compose.ui:ui-tooling-preview'" >> app/build.gradle
         echo "    implementation 'androidx.compose.material3:material3'" >> app/build.gradle
-        echo "    implementation 'androidx.compose.material:material'" >> app/build.gradle
-        echo "    implementation 'androidx.compose.material:material-icons-extended'" >> app/build.gradle
         echo "}" >> app/build.gradle
 
-        echo "distributionBase=GRADLE_USER_HOME" > gradle/wrapper/gradle-wrapper.properties
-        echo "distributionPath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
-        echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip" >> gradle/wrapper/gradle-wrapper.properties
-        echo "zipStoreBase=GRADLE_USER_HOME" >> gradle/wrapper/gradle-wrapper.properties
-        echo "zipStorePath=wrapper/dists" >> gradle/wrapper/gradle-wrapper.properties
-
-    - name: Setup Gradle Action
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.0'
 
     - name: Build Debug APK
       run: gradle assembleDebug --stacktrace
