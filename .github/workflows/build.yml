@@ -17,150 +17,49 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Clean & Setup Android Project
+    - name: Clean project
+      run: rm -rf app build.gradle settings.gradle gradle gradlew gradlew.bat
+
+    - name: Create settings.gradle
       run: |
-        rm -rf app build.gradle settings.gradle gradle gradlew gradlew.bat
+        echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+        echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+        echo "rootProject.name = 'KaraokeApp'" >> settings.gradle
+        echo "include ':app'" >> settings.gradle
 
-        # 1. Root settings.gradle
-        cat << 'EOF' > settings.gradle
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        rootProject.name = "KaraokeApp"
-        include ':app'
-        EOF
+    - name: Create build.gradle
+      run: |
+        echo "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'com.android.tools.build:gradle:8.1.1'; classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20' } }" > build.gradle
 
-        # 2. Root build.gradle
-        cat << 'EOF' > build.gradle
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.1'
-                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20'
-            }
-        }
-        EOF
-
-        # 3. Create Directories
+    - name: Setup App Source Directory
+      run: |
         mkdir -p app/src/main/java/com/example/karaokeapp
+        if [ -f "MainActivity.txt" ]; then cp MainActivity.txt app/src/main/java/com/example/karaokeapp/MainActivity.kt; fi
+        if [ -f "MainActivity.kt" ]; then cp MainActivity.kt app/src/main/java/com/example/karaokeapp/MainActivity.kt; fi
 
-        # 4. Handle MainActivity
-        if [ -f "MainActivity.txt" ]; then
-          cp MainActivity.txt app/src/main/java/com/example/karaokeapp/MainActivity.kt
-        elif [ -f "MainActivity.kt" ]; then
-          cp MainActivity.kt app/src/main/java/com/example/karaokeapp/MainActivity.kt
-        else
-          cat << 'EOF' > app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          package com.example.karaokeapp
+    - name: Create AndroidManifest.xml
+      run: |
+        echo '<?xml version="1.0" encoding="utf-8"?>' > app/src/main/AndroidManifest.xml
+        echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.karaokeapp">' >> app/src/main/AndroidManifest.xml
+        echo '  <uses-permission android:name="android.permission.RECORD_AUDIO"/>' >> app/src/main/AndroidManifest.xml
+        echo '  <uses-permission android:name="android.permission.INTERNET"/>' >> app/src/main/AndroidManifest.xml
+        echo '  <application android:allowBackup="true" android:icon="@android:drawable/sym_def_app_icon" android:label="Karaoke App" android:theme="@android:style/Theme.MaterialComponents.DayNight.NoActionBar">' >> app/src/main/AndroidManifest.xml
+        echo '    <activity android:name=".MainActivity" android:exported="true">' >> app/src/main/AndroidManifest.xml
+        echo '      <intent-filter>' >> app/src/main/AndroidManifest.xml
+        echo '        <action android:name="android.intent.action.MAIN"/>' >> app/src/main/AndroidManifest.xml
+        echo '        <category android:name="android.intent.category.LAUNCHER"/>' >> app/src/main/AndroidManifest.xml
+        echo '      </intent-filter>' >> app/src/main/AndroidManifest.xml
+        echo '    </activity>' >> app/src/main/AndroidManifest.xml
+        echo '  </application>' >> app/src/main/AndroidManifest.xml
+        echo '</manifest>' >> app/src/main/AndroidManifest.xml
 
-          import android.os.Bundle
-          import androidx.activity.ComponentActivity
-          import androidx.activity.compose.setContent
-          import androidx.compose.material3.Text
-
-          class MainActivity : ComponentActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContent {
-                      Text(text = "Karaoke App Active")
-                  }
-              }
-          }
-          EOF
-        fi
-
-        # 5. AndroidManifest.xml
-        cat << 'EOF' > app/src/main/AndroidManifest.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.example.karaokeapp">
-
-            <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-            <uses-permission android:name="android.permission.INTERNET"/>
-
-            <application
-                android:allowBackup="true"
-                android:icon="@android:drawable/sym_def_app_icon"
-                android:label="Karaoke App"
-                android:theme="@android:style/Theme.MaterialComponents.DayNight.NoActionBar">
-                <activity
-                    android:name=".MainActivity"
-                    android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN"/>
-                        <category android:name="android.intent.category.LAUNCHER"/>
-                    </intent-filter>
-                </activity>
-            </application>
-        </manifest>
-        EOF
-
-        # 6. app/build.gradle
-        cat << 'EOF' > app/build.gradle
-        plugins {
-            id 'com.android.application'
-            id 'org.jetbrains.kotlin.android'
-        }
-
-        android {
-            namespace 'com.example.karaokeapp'
-            compileSdk 34
-
-            defaultConfig {
-                applicationId "com.example.karaokeapp"
-                minSdk 24
-                targetSdk 34
-                versionCode 1
-                versionName "1.0"
-            }
-
-            compileOptions {
-                sourceCompatibility JavaVersion.VERSION_17
-                targetCompatibility JavaVersion.VERSION_17
-            }
-
-            kotlinOptions {
-                jvmTarget = '17'
-            }
-
-            buildFeatures {
-                compose true
-            }
-
-            composeOptions {
-                kotlinCompilerExtensionVersion '1.5.4'
-            }
-        }
-
-        dependencies {
-            implementation 'androidx.core:core-ktx:1.12.0'
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.10.0'
-            implementation 'androidx.activity:activity-compose:1.8.2'
-            implementation platform('androidx.compose:compose-bom:2023.08.00')
-            implementation 'androidx.compose.ui:ui'
-            implementation 'androidx.compose.ui:ui-graphics'
-            implementation 'androidx.compose.ui:ui-tooling-preview'
-            implementation 'androidx.compose.material3:material3'
-            implementation 'androidx.compose.material:material'
-            implementation 'androidx.compose.material:material-icons-extended'
-            implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-        }
-        EOF
+    - name: Create app build.gradle
+      run: |
+        echo "plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }" > app/build.gradle
+        echo "android { namespace 'com.example.karaokeapp'; compileSdk 34; defaultConfig { applicationId 'com.example.karaokeapp'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' }" >> app/build.gradle
+        echo "compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }" >> app/build.gradle
+        echo "kotlinOptions { jvmTarget = '17' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.5.4' } }" >> app/build.gradle
+        echo "dependencies { implementation 'androidx.core:core-ktx:1.12.0'; implementation 'androidx.appcompat:appcompat:1.6.1'; implementation 'com.google.android.material:material:1.10.0'; implementation 'androidx.activity:activity-compose:1.8.2'; implementation platform('androidx.compose:compose-bom:2023.08.00'); implementation 'androidx.compose.ui:ui'; implementation 'androidx.compose.ui:ui-graphics'; implementation 'androidx.compose.ui:ui-tooling-preview'; implementation 'androidx.compose.material3:material3'; implementation 'androidx.compose.material:material'; implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0' }" >> app/build.gradle
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
