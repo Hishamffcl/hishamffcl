@@ -112,8 +112,8 @@ jobs:
         }
         EOF
 
-        # Gradle Wrapper setup
-        gradle wrapper
+        # Gradle Wrapper setup with stable Gradle version
+        gradle wrapper --gradle-version 8.0
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug
