@@ -17,8 +17,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Auto Setup App Files
+    - name: Fix Directory Structure & Auto Setup
       run: |
+        # Move build scripts to root if created inside App/
+        if [ -f "App/build.gradle" ]; then cp App/build.gradle ./build.gradle; fi
+        if [ -f "App/settings.gradle" ]; then cp App/settings.gradle ./settings.gradle; fi
+
         mkdir -p app/src/main/java/com/example/karaokeapp
 
         if [ -f "MainActivity.txt" ]; then
