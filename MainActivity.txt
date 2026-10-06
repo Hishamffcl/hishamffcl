@@ -1,0 +1,213 @@
+package com.example
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import java.util.regex.Pattern
+
+// ==========================================
+// 1. DATA MODELS & LYRIC PARSER
+// ==========================================
+
+data class LrcLine(
+val index: Int = 0,
+val timeMs: Long = 0L,
+val endMs: Long = 0L,
+val tamilText: String = "",
+val transliteration: String = ""
+)
+
+object LrcParser {
+private val TIME_TAG_REGEX = Pattern.compile("\[(\d{1,2}):(\d{2})(?:.:)?\]")
+
+fun parse(lrcContent: String): List<LrcLine> {
+val list = mutableListOf<Pair<Long, String>>()
+for (line in lrcContent.lines()) {
+val trimmed = line.trim()
+if (trimmed.isEmpty()) continue
+val matcher = TIME_TAG_REGEX.matcher(trimmed)
+var lastEnd = 0
+val timestamps = mutableListOf<Long>()
+
+while (matcher.find()) {
+val min = (matcher.group(1) ?: "0").toLongOrNull() ?: 0L
+val sec = (matcher.group(2) ?: "0").toLongOrNull() ?: 0L
+timestamps.add(min * 60_000L + sec * 1_000L)
+lastEnd = matcher.end()
+}
+if (timestamps.isNotEmpty()) {
+val lyricText = trimmed.substring(lastEnd).trim()
+for (t in timestamps) list.add(Pair(t, lyricText))
+}
+}
+val sorted = list.sortedBy { it.first }
+return sorted.mapIndexed { idx, pair ->
+val nextTime = if (idx + 1 < sorted.size) sorted[idx + 1].first else pair.first + 5000L
+LrcLine(index = idx, timeMs = pair.first, endMs = nextTime, tamilText = pair.second)
+}
+}
+}
+
+// ==========================================
+// 2. UI ANIMATION COMPONENT
+// ==========================================
+
+@Composable
+fun KaraokeProgressiveText(
+text: String,
+progress: Float,
+fontSize: TextUnit = 24.sp,
+fontWeight: FontWeight = FontWeight.Bold,
+highlightColor: Color = Color(0xFFFFD700),
+baseColor: Color = Color.White
+) {
+val safeProgress = progress.coerceIn(0f, 1f)
+
+Box(contentAlignment = Alignment.Center) {
+Text(text = text, fontSize = fontSize, fontWeight = fontWeight, color = baseColor, textAlign = TextAlign.Center)
+
+Text(
+text = text,
+fontSize = fontSize,
+fontWeight = fontWeight,
+color = highlightColor,
+textAlign = TextAlign.Center,
+modifier = Modifier
+.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+.drawWithContent {
+val clipWidth = size.width * safeProgress
+drawContent()
+drawRect(
+color = Color.Transparent,
+topLeft = Offset(clipWidth, 0f),
+size = Size(size.width - clipWidth, size.height),
+blendMode = BlendMode.Clear
+)
+}
+)
+}
+}
+
+// ==========================================
+// 3. NAVIGATION & VIEWMODEL
+// ==========================================
+
+enum class ScreenState { HOME, STAGE, MAKER_SYNC, LYRIC_EDITOR, RECORDINGS, VIDEOS }
+
+class KaraokeViewModel : ViewModel() {
+private val _currentScreen = MutableStateFlow(ScreenState.HOME)
+val currentScreen: StateFlow<ScreenState> = _currentScreen
+
+fun navigateTo(screen: ScreenState) {
+_currentScreen.value = screen
+}
+}
+
+// ==========================================
+// 4. MAIN ACTIVITY & SCREENS
+// ==========================================
+
+class MainActivity : ComponentActivity() {
+private val viewModel: KaraokeViewModel by viewModels()
+
+override fun onCreate(savedInstanceState: Bundle?) {
+super.onCreate(savedInstanceState)
+enableEdgeToEdge()
+setContent {
+MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF121212))) {
+Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF121212)) {
+KaraokeAppNavigation(viewModel = viewModel)
+}
+}
+}
+}
+}
+
+@Composable
+fun KaraokeAppNavigation(viewModel: KaraokeViewModel) {
+val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
+
+Crossfade(targetState = currentScreen, label = "screen_transition") { screen ->
+when (screen) {
+ScreenState.HOME -> SongLibraryScreen(viewModel)
+ScreenState.STAGE -> KaraokeStageScreen(onBack = { viewModel.navigateTo(ScreenState.HOME) })
+ScreenState.MAKER_SYNC -> SimpleScreen("⏱️ Time Tagging Studio", onBack = { viewModel.navigateTo(ScreenState.HOME) })
+ScreenState.LYRIC_EDITOR -> SimpleScreen("✏️ Offline Lyric Editor", onBack = { viewModel.navigateTo(ScreenState.HOME) })
+ScreenState.RECORDINGS -> SimpleScreen("🎙️️ Recorded Songs", onBack = { viewModel.navigateTo(ScreenState.HOME) })
+ScreenState.VIDEOS -> SimpleScreen("🎬 Exported Videos", onBack = { viewModel.navigateTo(ScreenState.HOME) })
+}
+}
+}
+
+@Composable
+fun SongLibraryScreen(viewModel: KaraokeViewModel) {
+Column(
+modifier = Modifier.fillMaxSize().padding(16.dp),
+horizontalAlignment = Alignment.CenterHorizontally,
+verticalArrangement = Arrangement.Center
+) {
+Text("🎵 Tamil Karaoke App", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFD700))
+Spacer(modifier = Modifier.height(24.dp))
+Button(onClick = { viewModel.navigateTo(ScreenState.STAGE) }) { Text("Start Karaoke Stage") }
+Spacer(modifier = Modifier.height(8.dp))
+Button(onClick = { viewModel.navigateTo(ScreenState.MAKER_SYNC) }) { Text("Time Tagging Studio") }
+Spacer(modifier = Modifier.height(8.dp))
+Button(onClick = { viewModel.navigateTo(ScreenState.LYRIC_EDITOR) }) { Text("Lyric Editor") }
+}
+}
+
+@Composable
+fun KaraokeStageScreen(onBack: () -> Unit) {
+var progress by remember { mutableFloatStateOf(0.5f) }
+
+Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+Button(onClick = onBack, modifier = Modifier.align(Alignment.Start)) { Text("⬅ Back") }
+Spacer(modifier = Modifier.height(40.dp))
+
+Text("🎤 Now Playing", color = Color.Gray, fontSize = 16.sp)
+Spacer(modifier = Modifier.height(30.dp))
+
+// Dynamic Highlighting Demo Component
+KaraokeProgressiveText(
+text = "கண்ணே கலைமானே கன்னி மயிலே",
+progress = progress
+)
+
+Spacer(modifier = Modifier.height(40.dp))
+Text("Simulate Progress:", color = Color.White)
+Slider(value = progress, onValueChange = { progress = it }, valueRange = 0f..1f)
+}
+}
+
+@Composable
+fun SimpleScreen(title: String, onBack: () -> Unit) {
+Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+Button(onClick = onBack) { Text("⬅ Back") }
+Spacer(modifier = Modifier.height(20.dp))
+Text(title, fontSize = 22.sp, color = Color.White, fontWeight = FontWeight.Bold)
+}
+}
