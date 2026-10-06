@@ -28,15 +28,6 @@ jobs:
           cp MainActivity.kt app/src/main/java/com/example/karaokeapp/MainActivity.kt
         else
           echo "package com.example.karaokeapp" > app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "import android.os.Bundle" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "import androidx.appcompat.app.AppCompatActivity" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "class MainActivity : AppCompatActivity() {" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "    override fun onCreate(savedInstanceState: Bundle?) {" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "        super.onCreate(savedInstanceState)" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "    }" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          echo "}" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
         fi
 
         if ! grep -q "package com.example.karaokeapp" app/src/main/java/com/example/karaokeapp/MainActivity.kt; then
