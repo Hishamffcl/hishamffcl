@@ -17,34 +17,150 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android Compose Project
+    - name: Clean & Setup Android Project
       run: |
-        rm -rf app build.gradle settings.gradle
+        rm -rf app build.gradle settings.gradle gradle gradlew gradlew.bat
 
         # 1. Root settings.gradle
-        printf "pluginManagement {\n  repositories {\n    google()\n    mavenCentral()\n    gradlePluginPortal()\n  }\n}\ndependencyResolutionManagement {\n  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n  repositories {\n    google()\n    mavenCentral()\n  }\n}\nrootProject.name = 'KaraokeApp'\ninclude ':app'\n" > settings.gradle
+        cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "KaraokeApp"
+        include ':app'
+        EOF
 
         # 2. Root build.gradle
-        printf "buildscript {\n  repositories {\n    google()\n    mavenCentral()\n  }\n  dependencies {\n    classpath 'com.android.tools.build:gradle:8.1.1'\n    classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20'\n  }\n}\n" > build.gradle
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.1'
+                classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.20'
+            }
+        }
+        EOF
 
-        # 3. App structure
+        # 3. Create Directories
         mkdir -p app/src/main/java/com/example/karaokeapp
 
-        # Copy & Fix package declaration in MainActivity
-        MAIN_FILE=""
-        if [ -f "MainActivity.txt" ]; then MAIN_FILE="MainActivity.txt"; fi
-        if [ -f "MainActivity.kt" ]; then MAIN_FILE="MainActivity.kt"; fi
+        # 4. Handle MainActivity
+        if [ -f "MainActivity.txt" ]; then
+          cp MainActivity.txt app/src/main/java/com/example/karaokeapp/MainActivity.kt
+        elif [ -f "MainActivity.kt" ]; then
+          cp MainActivity.kt app/src/main/java/com/example/karaokeapp/MainActivity.kt
+        else
+          cat << 'EOF' > app/src/main/java/com/example/karaokeapp/MainActivity.kt
+          package com.example.karaokeapp
 
-        if [ -n "$MAIN_FILE" ]; then
-          echo "package com.example.karaokeapp" > app/src/main/java/com/example/karaokeapp/MainActivity.kt
-          grep -v "^package " "$MAIN_FILE" >> app/src/main/java/com/example/karaokeapp/MainActivity.kt
+          import android.os.Bundle
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.setContent
+          import androidx.compose.material3.Text
+
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContent {
+                      Text(text = "Karaoke App Active")
+                  }
+              }
+          }
+          EOF
         fi
 
-        # 4. AndroidManifest.xml
-        printf '<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.karaokeapp">\n  <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n  <uses-permission android:name="android.permission.INTERNET"/>\n  <application android:allowBackup="true" android:icon="@android:drawable/sym_def_app_icon" android:label="Karaoke App" android:theme="@android:style/Theme.MaterialComponents.DayNight.NoActionBar">\n    <activity android:name=".MainActivity" android:exported="true">\n      <intent-filter>\n        <action android:name="android.intent.action.MAIN"/>\n        <category android:name="android.intent.category.LAUNCHER"/>\n      </intent-filter>\n    </activity>\n  </application>\n</manifest>\n' > app/src/main/AndroidManifest.xml
+        # 5. AndroidManifest.xml
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.example.karaokeapp">
 
-        # 5. app/build.gradle with Compose & Jetpack Libraries
-        printf "plugins {\n  id 'com.android.application'\n  id 'org.jetbrains.kotlin.android'\n}\n\nandroid {\n  namespace 'com.example.karaokeapp'\n  compileSdk 34\n  defaultConfig {\n    applicationId 'com.example.karaokeapp'\n    minSdk 24\n    targetSdk 34\n    versionCode 1\n    versionName '1.0'\n  }\n  compileOptions {\n    sourceCompatibility JavaVersion.VERSION_17\n    targetCompatibility JavaVersion.VERSION_17\n  }\n  kotlinOptions {\n    jvmTarget = '17'\n  }\n  buildFeatures {\n    compose true\n  }\n  composeOptions {\n    kotlinCompilerExtensionVersion '1.5.4'\n  }\n}\n\ndependencies {\n  implementation 'androidx.core:core-ktx:1.12.0'\n  implementation 'androidx.appcompat:appcompat:1.6.1'\n  implementation 'com.google.android.material:material:1.10.0'\n  implementation 'androidx.activity:activity-compose:1.8.2'\n  implementation platform('androidx.compose:compose-bom:2023.08.00')\n  implementation 'androidx.compose.ui:ui'\n  implementation 'androidx.compose.ui:ui-graphics'\n  implementation 'androidx.compose.ui:ui-tooling-preview'\n  implementation 'androidx.compose.material3:material3'\n  implementation 'androidx.compose.material:material'\n  implementation 'androidx.compose.material:material-icons-extended'\n  implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'\n  implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.7.0'\n}\n" > app/build.gradle
+            <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+            <uses-permission android:name="android.permission.INTERNET"/>
+
+            <application
+                android:allowBackup="true"
+                android:icon="@android:drawable/sym_def_app_icon"
+                android:label="Karaoke App"
+                android:theme="@android:style/Theme.MaterialComponents.DayNight.NoActionBar">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN"/>
+                        <category android:name="android.intent.category.LAUNCHER"/>
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # 6. app/build.gradle
+        cat << 'EOF' > app/build.gradle
+        plugins {
+            id 'com.android.application'
+            id 'org.jetbrains.kotlin.android'
+        }
+
+        android {
+            namespace 'com.example.karaokeapp'
+            compileSdk 34
+
+            defaultConfig {
+                applicationId "com.example.karaokeapp"
+                minSdk 24
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+
+            kotlinOptions {
+                jvmTarget = '17'
+            }
+
+            buildFeatures {
+                compose true
+            }
+
+            composeOptions {
+                kotlinCompilerExtensionVersion '1.5.4'
+            }
+        }
+
+        dependencies {
+            implementation 'androidx.core:core-ktx:1.12.0'
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.10.0'
+            implementation 'androidx.activity:activity-compose:1.8.2'
+            implementation platform('androidx.compose:compose-bom:2023.08.00')
+            implementation 'androidx.compose.ui:ui'
+            implementation 'androidx.compose.ui:ui-graphics'
+            implementation 'androidx.compose.ui:ui-tooling-preview'
+            implementation 'androidx.compose.material3:material3'
+            implementation 'androidx.compose.material:material'
+            implementation 'androidx.compose.material:material-icons-extended'
+            implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+        }
+        EOF
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
@@ -53,7 +169,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
       with:
         gradle-version: '8.2'
-        arguments: assembleDebug --stacktrace
+        arguments: assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
